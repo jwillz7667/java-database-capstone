@@ -1,47 +1,70 @@
 package com.project.back_end.services;
 
-import io.jsonwebtoken.Claims;
+import com.project.back_end.repo.AdminRepository;
+import com.project.back_end.repo.DoctorRepository;
+import com.project.back_end.repo.PatientRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-import java.security.Key;
+import javax.crypto.SecretKey;
+import java.util.Date;
 
-@Service
+@Component
 public class TokenService {
 
     @Value("${jwt.secret}")
     private String secret;
 
-    private Key key;
+    private final AdminRepository adminRepository;
+    private final DoctorRepository doctorRepository;
+    private final PatientRepository patientRepository;
 
-    @PostConstruct
-    public void init() {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    public TokenService(AdminRepository adminRepository, DoctorRepository doctorRepository, PatientRepository patientRepository) {
+        this.adminRepository = adminRepository;
+        this.doctorRepository = doctorRepository;
+        this.patientRepository = patientRepository;
     }
 
-    public boolean validateToken(String token, String role) {
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+    public String generateToken(String identifier) {
+        return Jwts.builder()
+                .setSubject(identifier)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
+                .signWith(getSigningKey())
+                .compact();
+    }
 
-            String tokenRole = claims.get("role", String.class);
-            return role.equals(tokenRole);
+    public String extractIdentifier(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+
+    public boolean validateToken(String token, String user) {
+        try {
+            String identifier = extractIdentifier(token);
+            switch (user) {
+                case "admin":
+                    return adminRepository.findByUsername(identifier) != null;
+                case "doctor":
+                    return doctorRepository.findByEmail(identifier) != null;
+                case "patient":
+                case "loggedPatient":
+                    return patientRepository.findByEmail(identifier) != null;
+                default:
+                    return false;
+            }
         } catch (Exception e) {
             return false;
         }
     }
 
-    public String generateToken(Long userId, String role) {
-        return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .claim("role", role)
-                .signWith(key)
-                .compact();
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 }
