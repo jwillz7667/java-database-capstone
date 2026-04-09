@@ -22,6 +22,18 @@ public class AppointmentController {
     @Autowired
     private Service service;
 
+    @GetMapping("/all/{token}")
+    public ResponseEntity<Map<String, Object>> getAllAppointments(@PathVariable String token) {
+        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "doctor");
+        if (validation != null) {
+            Map<String, Object> errorResponse = new HashMap<>(validation.getBody());
+            return ResponseEntity.status(validation.getStatusCode()).body(errorResponse);
+        }
+
+        Map<String, Object> response = appointmentService.getAllAppointments(token);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{date}/{patientName}/{token}")
     public ResponseEntity<Map<String, Object>> getAppointments(@PathVariable String date,
                                                                 @PathVariable String patientName,

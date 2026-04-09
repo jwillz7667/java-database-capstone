@@ -84,6 +84,40 @@ public class AppointmentService {
         }
     }
 
+    public Map<String, Object> getAllAppointments(String token) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String email = tokenService.extractIdentifier(token);
+            var doctor = doctorRepository.findByEmail(email);
+            if (doctor == null) {
+                response.put("message", "Doctor not found");
+                return response;
+            }
+
+            List<Appointment> appointments = appointmentRepository.findByDoctorId(doctor.getId());
+
+            List<AppointmentDTO> appointmentDTOs = appointments.stream()
+                    .map(a -> new AppointmentDTO(
+                            a.getId(),
+                            a.getDoctor().getId(),
+                            a.getDoctor().getName(),
+                            a.getPatient().getId(),
+                            a.getPatient().getName(),
+                            a.getPatient().getEmail(),
+                            a.getPatient().getPhone(),
+                            a.getPatient().getAddress(),
+                            a.getAppointmentTime(),
+                            a.getStatus()))
+                    .collect(Collectors.toList());
+
+            response.put("appointments", appointmentDTOs);
+            return response;
+        } catch (Exception e) {
+            response.put("message", "Some internal error occurred");
+            return response;
+        }
+    }
+
     public Map<String, Object> getAppointment(String pname, LocalDate date, String token) {
         Map<String, Object> response = new HashMap<>();
         try {

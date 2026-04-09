@@ -13,20 +13,39 @@ window.handleLogin = async function () {
     }
 
     try {
-        const endpoint = role === "admin" ? ENDPOINTS.ADMIN_LOGIN : ENDPOINTS.DOCTOR_LOGIN;
+        let endpoint;
+        if (role === "admin") {
+            endpoint = ENDPOINTS.ADMIN_LOGIN;
+        } else if (role === "doctor") {
+            endpoint = ENDPOINTS.DOCTOR_LOGIN;
+        } else {
+            endpoint = ENDPOINTS.PATIENT_LOGIN;
+        }
+
+        let body;
+        if (role === "admin") {
+            body = { username: email, password };
+        } else if (role === "doctor") {
+            body = { identifier: email, password };
+        } else {
+            body = { identifier: email, password };
+        }
+
         const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify(body)
         });
 
         if (response.ok) {
             const data = await response.json();
             localStorage.setItem("token", data.token);
             if (role === "admin") {
-                window.location.href = "/admin/dashboard";
+                window.location.href = `/adminDashboard/${data.token}`;
+            } else if (role === "doctor") {
+                window.location.href = `/doctorDashboard/${data.token}`;
             } else {
-                window.location.href = "/doctor/dashboard";
+                window.location.href = "/pages/patientDashboard.html";
             }
         } else {
             alert("Invalid credentials. Please try again.");

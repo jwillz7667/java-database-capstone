@@ -31,10 +31,9 @@ public class Doctor {
     private String password;
 
     @NotNull
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be 10 digits")
     private String phone;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     private List<String> availableTimes;
 
     // Getters and Setters

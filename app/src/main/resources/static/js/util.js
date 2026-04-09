@@ -3,13 +3,30 @@
 function selectRole(role) {
     localStorage.setItem("userRole", role);
 
-    if (role === "admin") {
+    if (role === "patient") {
+        openPatientLoginModal();
+    } else {
         openLoginModal();
-    } else if (role === "doctor") {
-        openLoginModal();
-    } else if (role === "patient") {
-        window.location.href = "/pages/patientDashboard.html";
     }
+}
+
+function openPatientLoginModal() {
+    const modal = document.getElementById("modal");
+    const modalBody = document.getElementById("modal-body");
+
+    if (!modal || !modalBody) return;
+
+    modalBody.innerHTML = `
+        <h3>Patient Login</h3>
+        <input type="email" id="loginEmail" placeholder="Email" />
+        <input type="password" id="loginPassword" placeholder="Password" />
+        <button onclick="handleLogin()">Login</button>
+        <p style="margin-top: 10px; text-align: center;">
+            Don't have an account? <a href="#" onclick="openSignupModal(); return false;">Sign Up</a>
+        </p>
+    `;
+
+    modal.classList.add("active");
 }
 
 function openLoginModal() {
@@ -19,9 +36,10 @@ function openLoginModal() {
     if (!modal || !modalBody) return;
 
     const role = localStorage.getItem("userRole");
+    const isAdmin = role === "admin";
     modalBody.innerHTML = `
-        <h3>${role === "admin" ? "Admin" : "Doctor"} Login</h3>
-        <input type="email" id="loginEmail" placeholder="Email" />
+        <h3>${isAdmin ? "Admin" : "Doctor"} Login</h3>
+        <input type="${isAdmin ? "text" : "email"}" id="loginEmail" placeholder="${isAdmin ? "Username" : "Email"}" />
         <input type="password" id="loginPassword" placeholder="Password" />
         <button onclick="handleLogin()">Login</button>
     `;

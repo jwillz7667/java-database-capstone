@@ -3,9 +3,9 @@ import { getAppointments } from "./services/appointmentRecordService.js";
 
 let allAppointments = [];
 
-async function loadAppointments() {
+async function loadAppointments(date) {
     const token = localStorage.getItem("token");
-    allAppointments = await getAppointments(token);
+    allAppointments = await getAppointments(token, date);
     renderAppointments(allAppointments);
 }
 
@@ -22,10 +22,10 @@ function renderAppointments(appointments) {
     appointments.forEach(apt => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${apt.patient ? apt.patient.id : "N/A"}</td>
-            <td>${apt.patient ? apt.patient.name : "N/A"}</td>
-            <td>${apt.patient ? apt.patient.phone : "N/A"}</td>
-            <td>${apt.patient ? apt.patient.email : "N/A"}</td>
+            <td>${apt.patientId || "N/A"}</td>
+            <td>${apt.patientName || "N/A"}</td>
+            <td>${apt.patientPhone || "N/A"}</td>
+            <td>${apt.patientEmail || "N/A"}</td>
             <td>
                 <button class="prescription-btn" onclick="viewPrescription(${apt.id})">
                     View / Add
@@ -42,7 +42,7 @@ if (searchBar) {
     searchBar.addEventListener("input", (e) => {
         const query = e.target.value.toLowerCase();
         const filtered = allAppointments.filter(a =>
-            a.patient && a.patient.name.toLowerCase().includes(query)
+            a.patientName && a.patientName.toLowerCase().includes(query)
         );
         renderAppointments(filtered);
     });
@@ -53,10 +53,7 @@ const todayBtn = document.getElementById("todayBtn");
 if (todayBtn) {
     todayBtn.addEventListener("click", () => {
         const today = new Date().toISOString().split("T")[0];
-        const filtered = allAppointments.filter(a =>
-            a.appointmentTime && a.appointmentTime.startsWith(today)
-        );
-        renderAppointments(filtered);
+        loadAppointments(today);
     });
 }
 
@@ -65,14 +62,9 @@ const dateFilter = document.getElementById("dateFilter");
 if (dateFilter) {
     dateFilter.addEventListener("change", (e) => {
         const date = e.target.value;
-        if (!date) {
-            renderAppointments(allAppointments);
-            return;
+        if (date) {
+            loadAppointments(date);
         }
-        const filtered = allAppointments.filter(a =>
-            a.appointmentTime && a.appointmentTime.startsWith(date)
-        );
-        renderAppointments(filtered);
     });
 }
 

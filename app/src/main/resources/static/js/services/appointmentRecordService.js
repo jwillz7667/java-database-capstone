@@ -1,12 +1,20 @@
 // appointmentRecordService.js - API communication for appointments
 import { ENDPOINTS } from "../config/config.js";
 
-export async function getAppointments(token) {
+export async function getAppointments(token, date, patientName) {
     try {
-        const response = await fetch(ENDPOINTS.APPOINTMENTS, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (response.ok) return await response.json();
+        let url;
+        if (date) {
+            const name = patientName || "null";
+            url = `${ENDPOINTS.APPOINTMENTS}/${date}/${name}/${token}`;
+        } else {
+            url = `${ENDPOINTS.APPOINTMENTS}/all/${token}`;
+        }
+        const response = await fetch(url);
+        if (response.ok) {
+            const data = await response.json();
+            return data.appointments || [];
+        }
         return [];
     } catch (error) {
         console.error("Error fetching appointments:", error);

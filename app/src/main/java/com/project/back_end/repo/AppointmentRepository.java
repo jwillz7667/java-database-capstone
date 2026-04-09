@@ -25,6 +25,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.doctor d LEFT JOIN FETCH a.patient p WHERE a.doctor.id = :doctorId ORDER BY a.appointmentTime DESC")
+    List<Appointment> findByDoctorId(@Param("doctorId") Long doctorId);
+
     @Modifying
     @Transactional
     void deleteAllByDoctorId(Long doctorId);
