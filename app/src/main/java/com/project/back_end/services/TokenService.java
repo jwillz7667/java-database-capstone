@@ -1,5 +1,8 @@
 package com.project.back_end.services;
 
+import com.project.back_end.models.Admin;
+import com.project.back_end.models.Doctor;
+import com.project.back_end.models.Patient;
 import com.project.back_end.repo.AdminRepository;
 import com.project.back_end.repo.DoctorRepository;
 import com.project.back_end.repo.PatientRepository;
@@ -9,17 +12,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class TokenService {
 
-    @Value("${jwt.secret}")
-    private String secret;
-
     private final AdminRepository adminRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
+
+    @Value("${jwt.secret}")
+    private String secret;
 
     public TokenService(AdminRepository adminRepository, DoctorRepository doctorRepository, PatientRepository patientRepository) {
         this.adminRepository = adminRepository;
@@ -28,34 +32,38 @@ public class TokenService {
     }
 
     public String generateToken(String identifier) {
+        long expirationTime = 1000 * 60 * 60 * 24 * 7; // 7 days
         return Jwts.builder()
-                .setSubject(identifier)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
+                .subject(identifier)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }
 
     public String extractIdentifier(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody()
+                .parseSignedClaims(token)
+                .getPayload()
                 .getSubject();
     }
 
-    public boolean validateToken(String token, String user) {
+    public boolean validateToken(String token, String userType) {
         try {
             String identifier = extractIdentifier(token);
-            switch (user) {
+            switch (userType) {
                 case "admin":
-                    return adminRepository.findByUsername(identifier) != null;
+                    Admin admin = adminRepository.findByUsername(identifier);
+                    return admin != null;
                 case "doctor":
-                    return doctorRepository.findByEmail(identifier) != null;
+                    Doctor doctor = doctorRepository.findByEmail(identifier);
+                    return doctor != null;
                 case "patient":
                 case "loggedPatient":
-                    return patientRepository.findByEmail(identifier) != null;
+                    Patient patient = patientRepository.findByEmail(identifier);
+                    return patient != null;
                 default:
                     return false;
             }
@@ -65,6 +73,6 @@ public class TokenService {
     }
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }
